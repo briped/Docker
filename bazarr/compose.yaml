@@ -1,0 +1,18 @@
+services:
+  bazarr:
+    container_name: bazarr
+    image: lscr.io/linuxserver/bazarr:latest
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - PUID=${CONTAINER_UID:-1000}
+      - PGID=${CONTAINER_GID:-1000}
+      - UMASK=${CONTAINER_UMASK:-022} 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${CONTAINER_BASEPATH:.}:/config
+      - ${MEDIA_BASEPATH:.}:/media
+      - ${MEDIA_BASEPATH:.}/movies:/movies
+      - ${MEDIA_BASEPATH:.}/tv:/tv
+    ports:
+      - ${CONTAINER_PORT_HTTP:-6767}:6767

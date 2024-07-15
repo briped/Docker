@@ -1,0 +1,35 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  ## https://github.com/wantguns/bin
+  basedbin:
+    image: wantguns/bin
+    container_name: ${CONTAINER_NAME:-basedbin}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    environment:
+      - BIN_PORT=${BIN_PORT:-6162}
+      - BIN_LIMITS={form="16 MiB"}
+    volumes:
+      - ${CONTAINER_BASEPATH:-/opt/basedbin}:/upload
+    ports:
+      - ${CONTAINER_PORT_HTTP:-${BIN_PORT:-6162}}:${BIN_PORT:-6162}
+    networks:
+      proxy:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-basedbin}-bouncer.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-basedbin}-bouncer.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-basedbin}-bouncer.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-basedbin}.middlewares=crowdsecBouncer
+      - traefik.http.routers.${TRAEFIK_SERVICE:-basedbin}.entrypoints=https
+      - traefik.http.routers.${TRAEFIK_SERVICE:-basedbin}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-basedbin}.tls=true
+      - traefik.http.routers.${TRAEFIK_SERVICE:-basedbin}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-basedbin}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-basedbin}.service=${TRAEFIK_SERVICE:-basedbin}
+      - traefik.http.services.${TRAEFIK_SERVICE:-basedbin}.loadbalancer.server.scheme=http
+      - traefik.http.services.${TRAEFIK_SERVICE:-basedbin}.loadbalancer.server.port=${BIN_PORT:-6162}

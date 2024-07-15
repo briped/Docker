@@ -1,0 +1,36 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  glances:
+    image: nicolargo/glances:latest
+    container_name: ${CONTAINER_HOSTNAME:-glances}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    pid: host
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - GLANCES_OPT=${GLANCES_OPT:-"--webserver --port ${GLANCES_PORT:-61208}"}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${CONTAINER_BASEPATH:-/opt/glances}:/glances
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-glances}-bouncer.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-glances}-bouncer.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-glances}-bouncer.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-glances}.middlewares=${TRAEFIK_SERVICE:-glances}-bouncer
+      - traefik.http.routers.${TRAEFIK_SERVICE:-glances}.entrypoints=https
+      - traefik.http.routers.${TRAEFIK_SERVICE:-glances}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-glances}.tls=true
+      - traefik.http.routers.${TRAEFIK_SERVICE:-glances}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-glances}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-glances}.service=${TRAEFIK_SERVICE:-glances}
+      - traefik.http.services.${TRAEFIK_SERVICE:-glances}.loadbalancer.server.scheme=http
+      - traefik.http.services.${TRAEFIK_SERVICE:-glances}.loadbalancer.server.port=${GLANCES_PORT:-61208}
+    #ports:
+    #  - ${CONTAINER_PORT_HTTP:-${GLANCES_PORT:-61208}}:${GLANCES_PORT:-61208}
+    networks:
+      proxy:

@@ -1,0 +1,101 @@
+networks:
+  stack:
+  proxy:
+    external: true
+
+services:
+  synapse:
+    image: docker.io/matrixdotorg/synapse:latest
+    container_name: ${CONTAINER_NAME:-synapse}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    ## Uncomment for first run, to generate config.
+    ## Alternatively, run the following command in folder with this compose file.
+    ## docker compose run --rm synapse generate
+    #command:
+    #  - generate
+    depends_on:
+      - db
+    environment:
+    ## Several environment variables were gleaned from the Github sourcefiles.
+    ## https://github.com/element-hq/synapse/blob/75b788f49f005bbc70b459d30913f1f7abf847cb/docker/conf/homeserver.yaml
+    ## https://github.com/element-hq/synapse/blob/75b788f49f005bbc70b459d30913f1f7abf847cb/docker/start.py
+      - TZ=${TZ:-Europe/Copenhagen}
+      - UID=${CONTAINER_UID:-991}
+      - GID=${CONTAINER_GID:-991}
+      - SYNAPSE_REPORT_STATS=${SYNAPSE_REPORT_STATS:-no}
+      - SYNAPSE_SERVER_NAME=${SYNAPSE_SERVER_NAME:-${TRAEFIK_SUBJECT_CN:?SYNAPSE_SERVER_NAME / TRAEFIK_SUBJECT_CN is missing}}
+      - SYNAPSE_HTTP_PORT=${SYNAPSE_HTTP_PORT:-8008}
+      - SYNAPSE_NO_TLS=${SYNAPSE_NO_TLS:-true}
+      - SYNAPSE_CONFIG_DIR=${SYNAPSE_CONFIG_DIR:-/data}
+      - SYNAPSE_CONFIG_PATH=${SYNAPSE_CONFIG_PATH:-${SYNAPSE_CONFIG_DIR:-/data}/homeserver.yaml}
+      - SYNAPSE_DATA_DIR=${SYNAPSE_DATA_DIR:-${SYNAPSE_CONFIG_DIR:-/data}}
+      - SYNAPSE_WORKER=${SYNAPSE_WORKER:-synapse.app.homeserver}
+      - SYNAPSE_LOG_LEVEL=${SYNAPSE_LOG_LEVEL:-INFO} # DEBUG, INFO, WARNING or ERROR.
+      - SYNAPSE_LOG_SENSITIVE=${SYNAPSE_LOG_SENSITIVE:-false}
+      - SYNAPSE_LOG_TESTING=${SYNAPSE_LOG_TESTING:-false}
+      - SYNAPSE_LOG_CONFIG=${SYNAPSE_LOG_CONFIG:-${SYNAPSE_CONFIG_DIR:-/data}/log.config}
+    #  - SYNAPSE_MACAROON_SECRET_KEY=${SYNAPSE_MACAROON_SECRET_KEY}
+    #  - SYNAPSE_APPSERVICES=${SYNAPSE_APPSERVICES}
+    #  - SYNAPSE_ENABLE_REGISTRATION=${SYNAPSE_ENABLE_REGISTRATION:-false}
+    #  - SYNAPSE_REGISTRATION_SHARED_SECRET=${SYNAPSE_ENABLE_REGISTRATION:+${SYNAPSE_REGISTRATION_SHARED_SECRET:-SYNAPSE_REGISTRATION_SHARED_SECRET is missing}}
+    #  - SYNAPSE_TURN_URIS=${SYNAPSE_TURN_URIS}
+    #  - SYNAPSE_TURN_SECRET=${SYNAPSE_TURN_URIS:+${SYNAPSE_TURN_SECRET:?SYNAPSE_TURN_SECRET is missing}}
+    #  - SYNAPSE_EVENT_CACHE_SIZE=${SYNAPSE_EVENT_CACHE_SIZE:-10K}
+    #  - SYNAPSE_MAX_UPLOAD_SIZE=${SYNAPSE_MAX_UPLOAD_SIZE:-50M}
+    #  - SYNAPSE_RECAPTCHA_PUBLIC_KEY=${SYNAPSE_RECAPTCHA_PUBLIC_KEY:-SYNAPSE_RECAPTCHA_PUBLIC_KEY is missing}
+    #  - SYNAPSE_RECAPTCHA_PRIVATE_KEY=${SYNAPSE_RECAPTCHA_PRIVATE_KEY:-SYNAPSE_RECAPTCHA_PRIVATE_KEY is missing}
+      - POSTGRES_HOST=${POSTGRES_HOST:-db}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_DB=${POSTGRES_DB:-synapse}
+      - POSTGRES_USER=${POSTGRES_USER:-synapse}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-Synapse-Key4-Matrix}
+    volumes:
+      - ${CONTAINER_BASEPATH:-/opt/synapse}:/data
+    ports:
+      - ${CONTAINER_PORT_HTTP:-${SYNAPSE_HTTP_PORT:-8008}}:${SYNAPSE_HTTP_PORT:-8008}
+    networks:
+      stack:
+      proxy:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-synapse}-bouncer.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:?CROWDSEC_LAPIKEY is missing}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-synapse}-bouncer.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-synapse}-bouncer.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}.middlewares=${TRAEFIK_SERVICE:-synapse}-bouncer
+      - "traefik.http.middlewares.${TRAEFIK_SERVICE:-synapse}-response.plugin.staticResponse.body={\"m.server\": \"${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}:443\"}"
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-synapse}-response.plugin.staticResponse.headers.Content-Type=application/json
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-synapse}-response.plugin.staticResponse.statusCode=200
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}-wellknown.middlewares=${TRAEFIK_SERVICE:-synapse}-response
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}-wellknown.entrypoints=https
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}-wellknown.rule=Path(`/.well-known/matrix/server`) && Host(`${SYNAPSE_SERVER_NAME:-${TRAEFIK_SUBJECT_CN:?SYNAPSE_SERVER_NAME / TRAEFIK_SUBJECT_CN is missing}}`)
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}-wellknown.tls=true
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}-wellknown.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}-wellknown.tls.domains[0].main=${SYNAPSE_SERVER_NAME:-${TRAEFIK_SUBJECT_CN:?SYNAPSE_SERVER_NAME / TRAEFIK_SUBJECT_CN is missing}}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}-wellknown.service=noop@internal
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}.entrypoints=https
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE / TRAEFIK_SUBJECT_CN is missing}`)}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}.tls=true
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}.service=${TRAEFIK_SERVICE:-synapse}
+      - traefik.http.services.${TRAEFIK_SERVICE:-synapse}.loadbalancer.server.scheme=http
+      - traefik.http.services.${TRAEFIK_SERVICE:-synapse}.loadbalancer.server.port=${CONTAINER_PORT_HTTP:-${SYNAPSE_HTTP_PORT:-8008}}
+
+  db:
+    image: docker.io/postgres:12-alpine
+    container_name: ${CONTAINER_DB_NAME:-synapse_db}
+    hostname: ${CONTAINER_DB_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - POSTGRES_USER=${POSTGRES_USER:-synapse}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-Synapse-Key4-Matrix}
+      ## https://element-hq.github.io/synapse/latest/postgres.html#set-up-database
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - ${CONTAINER_DB_BASEPATH:-${CONTAINER_BASEPATH:-/opt/synapse}/schemas}:/var/lib/postgresql/data
+    networks:
+      stack:
+

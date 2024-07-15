@@ -1,0 +1,31 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  # CrowdSec - https://www.crowdsec.net/ - https://doc.crowdsec.net/u/getting_started/installation/docker
+  crowdsec:
+    image: crowdsecurity/crowdsec
+    container_name: ${CONTAINER_NAME:-crowdsec}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: always
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - UID=${CONTAINER_UID:-1000}
+      - GID=${CONTAINER_GID:-1000}
+      - CUSTOM_HOSTNAME=${CUSTOM_HOSTNAME:-localhost}
+      - METRICS_PORT=${METRICS_PORT:-6060}
+      - COLLECTIONS=${COLLECTIONS:-"crowdsecurity/traefik crowdsecurity/http-dos crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux inherent-io/keycloak crowdsecurity/appsec-crs crowdsecurity/appsec-generic-rules crowdsecurity/appsec-virtual-patching"}
+    volumes:
+      - /var/log:/var/log:ro
+      - /dev/urandom:/dev/random:ro
+      - ${CONTAINER_BASEPATH}/logs/web:/logs/web:ro
+      - ${CONTAINER_BASEPATH}/data:/var/lib/crowdsec/data
+      - ${CONTAINER_BASEPATH}/config:/etc/crowdsec
+    ports:
+      - ${CONTAINER_PORT_HTTP:-8080}:8080
+      - ${CONTAINER_PORT_METRICS:-${METRICS_PORT:-6060}}:${METRICS_PORT:-6060}
+    networks:
+      - proxy

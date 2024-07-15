@@ -1,0 +1,16 @@
+services:
+  audiobookshelf:
+    container_name: audiobookshelf
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+    ports:
+      - ${CONTAINER_PORT_HTTP:-80}:80
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${CONTAINER_BASEPATH:-.}/config:/config
+      - ${CONTAINER_BASEPATH:-.}/metadata:/metadata
+      - ${MEDIA_BASEPATH:-.}/books/Audiobooks:/audiobooks
+      - ${MEDIA_BASEPATH:-.}/books/eBooks:/ebooks
+      - ${MEDIA_BASEPATH:-.}/music/Podcasts:/podcasts

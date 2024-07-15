@@ -1,0 +1,38 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  http-echo:
+    image: hashicorp/http-echo:latest
+    container_name: ${CONTAINER_NAME:-http-echo}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    command:
+    #  - -text=${ECHO_TEXT}
+      - -listen=${CONTAINER_PORT_HTTP:-5678}
+      - -status-code=${STATUS_CODE:-200}
+      - -version=false
+    environment:
+      - ECHO_TEXT=${ECHO_TEXT:-OK}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - ${CONTAINER_PORT_HTTP:-5678}:${CONTAINER_PORT_HTTP:-5678}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-http-echo}-bouncer.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:?CROWDSEC_LAPIKEY is missing}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-http-echo}-bouncer.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-http-echo}-bouncer.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-http-echo}.middlewares=${TRAEFIK_SERVICE:-http-echo}-bouncer
+      - traefik.http.routers.${TRAEFIK_SERVICE:-http-echo}.entrypoints=https
+      - traefik.http.routers.${TRAEFIK_SERVICE:-http-echo}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-http-echo}.tls=true
+      - traefik.http.routers.${TRAEFIK_SERVICE:-http-echo}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-http-echo}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-http-echo}.service=${TRAEFIK_SERVICE:-http-echo}
+      - traefik.http.services.${TRAEFIK_SERVICE:-http-echo}.loadbalancer.server.scheme=http
+      - traefik.http.services.${TRAEFIK_SERVICE:-http-echo}.loadbalancer.server.port=${CONTAINER_PORT_HTTP:-5678}
+    networks:
+      proxy:

@@ -1,0 +1,18 @@
+# ignore os files
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# ignore logs
+*.log
+
+# ignore env files
+*.env
+# ignore all dotfiles
+.*
+!.gitignore
+
+# ignore all test files anf folders
+test*
+Test*

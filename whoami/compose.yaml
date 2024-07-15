@@ -1,0 +1,42 @@
+services:
+  whoami:
+    image: traefik/whoami
+    container_name: ${CONTAINER_NAME:-whoami}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    #command:
+    #  - --port=${PORT_HTTP0:-80}
+    #  - --name=
+    #  - --verbose=false
+    #  - --cert=cert.crt
+    #  - --key=cert.key
+    #  - --ca=cacert.crt
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - WHOAMI_PORT_NUMBER=${WHOAMI_PORT_NUMBER:-80}
+      - WHOAMI_NAME=${WHOAMI_NAME}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    #ports:
+    #  - ${CONTAINER_PORT_HTTP:-${WHOAMI_PORT_NUMBER:-80}}:${WHOAMI_PORT_NUMBER:-80}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-whoami}-bouncer.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:?CROWDSEC_LAPIKEY is missing}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-whoami}-bouncer.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-whoami}-bouncer.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.middlewares=${TRAEFIK_SERVICE:-whoami}-bouncer
+      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.entrypoints=https
+      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}}`)}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.tls=true
+      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:-TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.service=${TRAEFIK_SERVICE:-whoami}
+      - traefik.http.services.${TRAEFIK_SERVICE:-whoami}.loadbalancer.server.scheme=http
+      - traefik.http.services.${TRAEFIK_SERVICE:-whoami}.loadbalancer.server.port=${WHOAMI_PORT_NUMBER:-80}
+    networks:
+      proxy:
+
+networks:
+  proxy:
+    external: true
