@@ -1,0 +1,37 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  dokuwiki:
+    image: lscr.io/linuxserver/dokuwiki:latest
+    container_name: dokuwiki
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - PUID=998
+      - PGID=998
+    volumes:
+      - ${CONTAINER_BASEPATH:-/opt/dokuwiki}:/config
+    ports:
+      - ${CONTAINER_PORT_HTTP:-80}:80
+      - ${CONTAINER_PORT_HTTPS:-443}:443
+    networks:
+      proxy:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-dokuwiki}-bouncer.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-dokuwiki}-bouncer.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-dokuwiki}-bouncer.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dokuwiki}.middlewares=${TRAEFIK_SERVICE:-dokuwiki}-bouncer
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dokuwiki}.entrypoints=https
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dokuwiki}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dokuwiki}.tls=true
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dokuwiki}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dokuwiki}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dokuwiki}.tls.domains[0].sans=${TRAEFIK_SUBJECT_AN:-}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dokuwiki}.service=${TRAEFIK_SERVICE:-dokuwiki}
+      - traefik.http.services.${TRAEFIK_SERVICE:-dokuwiki}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
+      - traefik.http.services.${TRAEFIK_SERVICE:-dokuwiki}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-80}

@@ -15,6 +15,10 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${CONTAINER_BASEPATH:-/opt/glances}:/glances
+    #ports:
+    #  - ${CONTAINER_PORT_HTTP:-${GLANCES_PORT:-61208}}:${GLANCES_PORT:-61208}
+    networks:
+      proxy:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
@@ -28,9 +32,5 @@ services:
       - traefik.http.routers.${TRAEFIK_SERVICE:-glances}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
       - traefik.http.routers.${TRAEFIK_SERVICE:-glances}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
       - traefik.http.routers.${TRAEFIK_SERVICE:-glances}.service=${TRAEFIK_SERVICE:-glances}
-      - traefik.http.services.${TRAEFIK_SERVICE:-glances}.loadbalancer.server.scheme=http
-      - traefik.http.services.${TRAEFIK_SERVICE:-glances}.loadbalancer.server.port=${GLANCES_PORT:-61208}
-    #ports:
-    #  - ${CONTAINER_PORT_HTTP:-${GLANCES_PORT:-61208}}:${GLANCES_PORT:-61208}
-    networks:
-      proxy:
+      - traefik.http.services.${TRAEFIK_SERVICE:-glances}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
+      - traefik.http.services.${TRAEFIK_SERVICE:-glances}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-${GLANCES_PORT:-61208}}

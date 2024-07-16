@@ -1,0 +1,36 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  openspeedtest:
+    image: openspeedtest/latest
+    container_name: ${CONTAINER_NAME:-openspeedtest}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+    ports:
+      - ${CONTAINER_PORT_HTTP:-3000}:3000
+    networks:
+      proxy:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-openspeedtest}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-openspeedtest}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-openspeedtest}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.middlewares.mdw-buffer-${TRAEFIK_SERVICE:-openspeedtest}.buffering.maxRequestBodyBytes=10000000000
+      - traefik.http.middlewares.mdw-chain-${TRAEFIK_SERVICE:-openspeedtest}.chain.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-openspeedtest},mdw-buffer-${TRAEFIK_SERVICE:-openspeedtest}
+      #- traefik.http.routers.rtr-${TRAEFIK_SERVICE:-openspeedtest}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-openspeedtest}
+      #- traefik.http.routers.rtr-${TRAEFIK_SERVICE:-openspeedtest}.middlewares=mdw-buffer-${TRAEFIK_SERVICE:-openspeedtest}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-openspeedtest}.middlewares=mdw-chain-${TRAEFIK_SERVICE:-openspeedtest}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-openspeedtest}.entrypoints=https
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-openspeedtest}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-openspeedtest}.tls=true
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-openspeedtest}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-openspeedtest}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-openspeedtest}.tls.domains[0].sans=${TRAEFIK_SUBJECT_AN:-}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-openspeedtest}.service=svc-${TRAEFIK_SERVICE:-openspeedtest}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-openspeedtest}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-openspeedtest}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-3000}

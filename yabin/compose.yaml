@@ -1,0 +1,72 @@
+networks:
+  stack:
+  proxy:
+    external: true
+
+services:
+  yabin:
+    ## https://github.com/Yureien/YABin
+    image: yureien/yabin:latest
+    container_name: ${CONTAINER_NAME:-yabin}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - PORT=${PORT:-3000}
+      - SALT=${SALT:-Yet-Another-Salt-Bin4-Pasting}
+      - DB_PROVIDER=${DB_PROVIDER:-postgres}
+      - DB_NAME=${DB_NAME:-yabin}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-yabin}
+      - DB_PASSWORD=${DB_PASSWORD:-Yet-Another-Key4-Pesky-Query-Language}
+      - DATABASE_URL=${DB_PROVIDER:-postgres}://${DB_USER:-yabin}:${DB_PASSWORD:-Yet-Another-Key4-Pesky-Query-Language}@${DB_HOST:-db}:${DB_PORT:-5432}?schema=public
+      - MAIL_ENABLED=${MAIL_ENABLED:-false}
+      - MAIL_SERVER
+      - MAIL_PORT
+      - MAIL_USE_SSL
+      - MAIL_USERNAME
+      - MAIL_PASSWORD
+      - MAIL_FROM
+      - PUBLIC_REGISTRATION_ENABLED=${PUBLIC_REGISTRATION_ENABLED:-true}
+      - PUBLIC_CUSTOM_PATHS_ENABLED=${PUBLIC_CUSTOM_PATHS_ENABLED:-true}
+      - PUBLIC_ANONYMOUS_PASTES_ENABLED=${PUBLIC_ANONYMOUS_PASTES_ENABLED:-true}
+      - PUBLIC_URL=http://localhost:5173
+      - ORIGIN=http://localhost:5173
+    ports:
+      - ${CONTAINER_PORT_HTTP:-3000}:3000
+    networks:
+      - stack
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-yabin}-bouncer.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-yabin}-bouncer.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-yabin}-bouncer.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-yabin}.middlewares=${TRAEFIK_SERVICE:-yabin}-bouncer
+      - traefik.http.routers.${TRAEFIK_SERVICE:-yabin}.entrypoints=https
+      - traefik.http.routers.${TRAEFIK_SERVICE:-yabin}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-yabin}.tls=true
+      - traefik.http.routers.${TRAEFIK_SERVICE:-yabin}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-yabin}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-yabin}.service=${TRAEFIK_SERVICE:-yabin}
+      - traefik.http.services.${TRAEFIK_SERVICE:-yabin}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
+      - traefik.http.services.${TRAEFIK_SERVICE:-yabin}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-3000}
+
+  db:
+    image: postgres:15-alpine
+    container_name: ${CONTAINER_DB_NAME:-yabin_db}
+    hostname: ${CONTAINER_DB_HOSTNAME:-${HOSTNAME}}
+    restart: always
+    environment:
+      - POSTGRES_USER=${DB_USER:-yabin}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-Yet-Another-Key4-Pesky-Query-Language}
+      - POSTGRES_DB=${DB_NAME:-yabin}
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - ${CONTAINER_DB_BASEPATH:-${CONTAINER_BASEPATH:-/opt/yabin}/db}:/var/lib/postgresql/data
+    networks:
+      - stack
