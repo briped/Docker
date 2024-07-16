@@ -81,7 +81,7 @@ services:
       - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
       - traefik.http.routers.${TRAEFIK_SERVICE:-synapse}.service=${TRAEFIK_SERVICE:-synapse}
       - traefik.http.services.${TRAEFIK_SERVICE:-synapse}.loadbalancer.server.scheme=http
-      - traefik.http.services.${TRAEFIK_SERVICE:-synapse}.loadbalancer.server.port=${CONTAINER_PORT_HTTP:-${SYNAPSE_HTTP_PORT:-8008}}
+      - traefik.http.services.${TRAEFIK_SERVICE:-synapse}.loadbalancer.server.port=${SYNAPSE_HTTP_PORT:-8008}
 
   db:
     image: docker.io/postgres:12-alpine
