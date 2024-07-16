@@ -13,11 +13,14 @@ services:
       - no-new-privileges:true
     environment:
       - TZ=${TZ:-Europe/Copenhagen}
+      #- BOUNCER_KEY_TRAEFIK=${BOUNCER_KEY_TRAEFIK:-}
       - UID=${CONTAINER_UID:-1000}
       - GID=${CONTAINER_GID:-1000}
       - CUSTOM_HOSTNAME=${CUSTOM_HOSTNAME:-localhost}
       - METRICS_PORT=${METRICS_PORT:-6060}
       - COLLECTIONS=${COLLECTIONS:-"crowdsecurity/traefik crowdsecurity/http-dos crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux inherent-io/keycloak crowdsecurity/appsec-crs crowdsecurity/appsec-generic-rules crowdsecurity/appsec-virtual-patching"}
+      - CONFIG_FILE=${CONFIG_FILE:-/etc/crowdsec/config.yaml}
+      - ENABLE_CONSOLE_MANAGEMENT=${ENABLE_CONSOLE_MANAGEMENT:-}
     volumes:
       - /var/log:/var/log:ro
       - /dev/urandom:/dev/random:ro
