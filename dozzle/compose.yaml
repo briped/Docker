@@ -1,0 +1,49 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  ## Dozzle - Real-time Docker Log Viewer - https://dozzle.dev/
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: ${CONTAINER_NAME:-dozzle}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - proxy
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - DOZZLE_ADDR=:${DOZZLE_ADDR:-8080}
+      - DOZZLE_BASE=${DOZZLE_BASE:-/}
+      - DOZZLE_HOSTNAME=${DOZZLE_HOSTNAME}
+      - DOZZLE_LEVEL=info
+      - DOZZLE_AUTH_PROVIDER=${DOZZLE_AUTH_PROVIDER:-none} # none, simple, forward-proxy
+      - DOZZLE_AUTH_HEADER_USER=${DOZZLE_AUTH_HEADER_USER:-Remote-User}
+      - DOZZLE_AUTH_HEADER_EMAIL=${DOZZLE_AUTH_HEADER_EMAIL:-Remote-Email}
+      - DOZZLE_AUTH_HEADER_NAME=${DOZZLE_AUTH_HEADER_NAME:-Remote-Name}
+      - DOZZLE_ENABLE_ACTIONS=${DOZZLE_ENABLE_ACTIONS:-false}
+      # https://github.com/amir20/dozzle/blob/987c0e6cc4640fa4fda276c1fede8eb127c93527/docs/guide/filters.md
+      # https://docs.docker.com/reference/cli/docker/container/ls/#filter
+      - DOZZLE_FILTER=${DOZZLE_FILTER:-status=running}
+      - DOZZLE_NO_ANALYTICS=${DOZZLE_NO_ANALYTICS:-false}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - ${CONTAINER_PORT_HTTP:-8080}:${DOZZLE_ADDR:-8080}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-dozzle}-bouncer.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-dozzle}-bouncer.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.${TRAEFIK_SERVICE:-dozzle}-bouncer.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.middlewares=${TRAEFIK_SERVICE:-dozzle}-bouncer
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.entrypoints=https
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.tls=true
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.service=${TRAEFIK_SERVICE:-dozzle}
+      - traefik.http.services.${TRAEFIK_SERVICE:-dozzle}.loadbalancer.server.scheme=http
+      - traefik.http.services.${TRAEFIK_SERVICE:-dozzle}.loadbalancer.server.port=${DOZZLE_ADDR:-8080}
