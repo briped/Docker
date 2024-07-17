@@ -41,19 +41,19 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-zitadel}-bouncer.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-zitadel}-bouncer.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-zitadel}-bouncer.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-zitadel}.middlewares=${TRAEFIK_SERVICE:-zitadel}-bouncer
-      - traefik.http.routers.${TRAEFIK_SERVICE:-zitadel}.entrypoints=https
-      - traefik.http.routers.${TRAEFIK_SERVICE:-zitadel}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-zitadel}.tls=true
-      - traefik.http.routers.${TRAEFIK_SERVICE:-zitadel}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-zitadel}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-zitadel}.service=${TRAEFIK_SERVICE:-zitadel}
-      - traefik.http.services.${TRAEFIK_SERVICE:-zitadel}.loadbalancer.server.scheme=h2c
-      - traefik.http.services.${TRAEFIK_SERVICE:-zitadel}.loadbalancer.server.port=${PORT1:-${ZITADEL_PORT:-8080}}
-      - traefik.http.services.${TRAEFIK_SERVICE:-zitadel}.loadbalancer.passHostHeader=true
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-zitadel}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-zitadel}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-zitadel}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-zitadel}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.entrypoints=https
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.tls=true
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.service=svc-${TRAEFIK_SERVICE:-zitadel}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-zitadel}.loadbalancer.server.scheme=h2c
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-zitadel}.loadbalancer.server.port=${PORT1:-${ZITADEL_PORT:-8080}}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-zitadel}.loadbalancer.passHostHeader=true
     networks:
       stack:
       proxy:

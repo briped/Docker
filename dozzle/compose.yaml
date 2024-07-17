@@ -30,20 +30,21 @@ services:
       - DOZZLE_NO_ANALYTICS=${DOZZLE_NO_ANALYTICS:-false}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ${CONTAINER_BASEPATH:-/opt/dozzle}:/data
     ports:
       - ${CONTAINER_PORT_HTTP:-8080}:${DOZZLE_ADDR:-8080}
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-dozzle}-bouncer.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-dozzle}-bouncer.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-dozzle}-bouncer.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.middlewares=${TRAEFIK_SERVICE:-dozzle}-bouncer
-      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.entrypoints=https
-      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.tls=true
-      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-dozzle}.service=${TRAEFIK_SERVICE:-dozzle}
-      - traefik.http.services.${TRAEFIK_SERVICE:-dozzle}.loadbalancer.server.scheme=http
-      - traefik.http.services.${TRAEFIK_SERVICE:-dozzle}.loadbalancer.server.port=${DOZZLE_ADDR:-8080}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-dozzle}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-dozzle}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-dozzle}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dozzle}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-dozzle}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dozzle}.entrypoints=https
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dozzle}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dozzle}.tls=true
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dozzle}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dozzle}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dozzle}.service=svc-${TRAEFIK_SERVICE:-dozzle}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-dozzle}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-dozzle}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-${DOZZLE_ADDR:-8080}}

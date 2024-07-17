@@ -45,19 +45,19 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-authentik}-bouncer.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-authentik}-bouncer.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-authentik}-bouncer.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-authentik}.middlewares=${TRAEFIK_SERVICE:-authentik}-bouncer
-      - traefik.http.routers.${TRAEFIK_SERVICE:-authentik}.entrypoints=https
-      - traefik.http.routers.${TRAEFIK_SERVICE:-authentik}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-authentik}.tls=true
-      - traefik.http.routers.${TRAEFIK_SERVICE:-authentik}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-authentik}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-authentik}.service=${TRAEFIK_SERVICE:-authentik}
-      - traefik.http.services.${TRAEFIK_SERVICE:-authentik}.loadbalancer.server.scheme=http
-      - traefik.http.services.${TRAEFIK_SERVICE:-authentik}.loadbalancer.server.port=${AUTHENTIK_LISTEN__HTTP_PORT:-9000}
-      - traefik.http.services.${TRAEFIK_SERVICE:-authentik}.loadbalancer.passHostHeader=true
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-authentik}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-authentik}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-authentik}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-authentik}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-authentik}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-authentik}.entrypoints=https
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-authentik}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-authentik}.tls=true
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-authentik}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-authentik}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-authentik}.service=svc-${TRAEFIK_SERVICE:-authentik}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-authentik}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-authentik}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-${AUTHENTIK_LISTEN__HTTP_PORT:-9000}}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-authentik}.loadbalancer.passHostHeader=true
 
   worker:
     image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2024.6.1}

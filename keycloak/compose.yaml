@@ -37,7 +37,7 @@ services:
       - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-${KEYCLOAK_USER:-admin}}
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-${KEYCLOAK_PASS:-change_me}}
     volumes:
-      - ${CONTAINER_BASEPATH}/logs:/var/log
+      - ${CONTAINER_BASEPATH:-/opt/keycloak}/logs:/var/log
     ports:
       - ${CONTAINER_PORT_HTTP:-${KC_HTTP_PORT:-8080}}:${KC_HTTP_PORT:-8080}
       - ${CONTAINER_PORT_MGMT:-${KC_HTTP_MANAGEMENT_PORT:-9000}}:${KC_HTTP_MANAGEMENT_PORT:-9000}
@@ -70,6 +70,6 @@ services:
       - POSTGRES_USER=${KC_DB_USERNAME:-keycloak}
       - POSTGRES_PASSWORD=${KC_DB_PASSWORD:-Cloaked-Key4-Ad-Miner}
     volumes:
-      - ${CONTAINER_DB_BASEPATH:?CONTAINER_DB_BASEPATH is missing}:/var/lib/postgresql/data
+      - ${CONTAINER_DB_BASEPATH:-${CONTAINER_BASEPATH:-/opt/keycloak}/db}:/var/lib/postgresql/data
     networks:
       stack:

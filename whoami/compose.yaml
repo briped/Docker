@@ -1,3 +1,7 @@
+networks:
+  proxy:
+    external: true
+
 services:
   whoami:
     image: traefik/whoami
@@ -22,21 +26,17 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-whoami}-bouncer.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:?CROWDSEC_LAPIKEY is missing}
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-whoami}-bouncer.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-whoami}-bouncer.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.middlewares=${TRAEFIK_SERVICE:-whoami}-bouncer
-      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.entrypoints=https
-      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}}`)}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.tls=true
-      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:-TRAEFIK_SUBJECT_CN is missing}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-whoami}.service=${TRAEFIK_SERVICE:-whoami}
-      - traefik.http.services.${TRAEFIK_SERVICE:-whoami}.loadbalancer.server.scheme=http
-      - traefik.http.services.${TRAEFIK_SERVICE:-whoami}.loadbalancer.server.port=${WHOAMI_PORT_NUMBER:-80}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-whoami}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:?CROWDSEC_LAPIKEY is missing}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-whoami}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-whoami}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-whoami}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.entrypoints=https
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.tls=true
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:-TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.service=svc-${TRAEFIK_SERVICE:-whoami}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-whoami}.loadbalancer.server.scheme=http
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-whoami}.loadbalancer.server.port=${WHOAMI_PORT_NUMBER:-80}
     networks:
       proxy:
-
-networks:
-  proxy:
-    external: true
