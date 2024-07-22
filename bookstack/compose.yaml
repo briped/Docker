@@ -1,0 +1,76 @@
+networks:
+  stack:
+  proxy:
+    external: true
+
+services:
+  bookstack:
+    image: lscr.io/linuxserver/bookstack
+    container_name: ${CONTAINER_NAME:-bookstack}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - PUID=${CONTAINER_UID:-1000}
+      - PGID=${CONTAINER_GID:-1000}
+      - APP_URL=${APP_URL:-${TRAEFIK_SERVICE_SCHEME:-http}://${TRAEFIK_SERVICE:-bookstack}:${TRAEFIK_SERVICE_PORT:-80}}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_DATABASE=${DB_DATABASE:-bookstack}
+      - DB_USER=${DB_USER:-bookstack}
+      - DB_PASS=${DB_PASS:-Key4-My-Squeeky-StackOf-Language-Books}
+    volumes:
+      - ${CONTAINER_BASEPATH:-/opt/bookstack}:/config
+    ports:
+      - ${CONTAINER_PORT_HTTP:-80}:80
+    networks:
+      stack:
+      proxy:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-bookstack}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-bookstack}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-bookstack}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-bookstack}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-bookstack}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-bookstack}.entrypoints=https
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-bookstack}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-bookstack}.tls=true
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-bookstack}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-bookstack}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-bookstack}.service=svc-${TRAEFIK_SERVICE:-bookstack}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-bookstack}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-bookstack}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-80}
+
+  db:
+    image: lscr.io/linuxserver/mariadb
+    container_name: ${CONTAINER_DB_NAME:-bookstack_db}
+    hostname: ${CONTAINER_DB_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - PUID=${CONTAINER_DB_UID:-1000}
+      - PGID=${CONTAINER_DB_GID:-1000}
+      - MYSQL_ROOT_PASSWORD=${DB_PASS:-Key4-My-Squeeky-StackOf-Language-Books}
+      - MYSQL_DATABASE=${DB_DATABASE:-bookstack}
+      - MYSQL_USER=${DB_USER:-bookstack}
+      - MYSQL_PASSWORD=${DB_PASS:-Key4-My-Squeeky-StackOf-Language-Books}
+    volumes:
+      - ${CONTAINER_DB_BASEPATH:-${CONTAINER_BASEPATH:-/opt/bookstack}/db}:/config
+    networks:
+      stack:
+
+#  mariadb:
+#    image: mariadb
+#    restart: unless-stopped
+#    environment:
+#      - MARIADB_ROOT_PASSWORD=${DB_PASS:-Key4-My-Squeeky-StackOf-Language-Books}
+#      - MARIADB_DATABASE=${DB_DATABASE:-bookstack}
+#      - MARIADB_USER=${DB_USER:-bookstack}
+#      - MARIADB_PASSWORD=${DB_PASS:-Key4-My-Squeeky-StackOf-Language-Books}
+#    volumes:
+#      - ${CONTAINER_DB_BASEPATH:-${CONTAINER_BASEPATH:-/opt/bookstack}/db}:/var/lib/mysql
+#    networks:
+#      stack:

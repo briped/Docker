@@ -1,0 +1,116 @@
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+log:
+  #filePath: ${TRAEFIK_LOG_FILE:-${TRAEFIK_LOG_PATH:-/var/log/traefik}/traefik.log}
+  #format: json
+  level: INFO
+
+accessLog:
+  #filePath: ${TRAEFIK_ACCESSLOG_FILE:-${TRAEFIK_LOG_PATH:-/var/log/traefik}/access.log}
+  #format: json
+  fields:
+    defaultMode: keep
+    headers:
+      defaultMode: keep
+
+api:
+  dashboard: true
+  debug: true
+  disableDashboardAd: true
+
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: ${TRAEFIK_ACME_PATH:-/etc/traefik/certs}/default.crt
+        keyFile: ${TRAEFIK_ACME_PATH:-/etc/traefik/certs}/default.key
+      defaultGeneratedCert:
+        certResolver: le_dns_cf
+        domain:
+          main: ${TRAEFIK_DEFAULT_SUBJECT_CN}
+          sans: ${TRAEFIK_DEFAULT_SUBJECT_AN}
+  options:
+    default:
+      minVersion: VersionTLS12
+      cipherSuites:
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_ARIA_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_ARIA_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_GCM_SHA256
+        - TLS_AES_256_GCM_SHA384
+        - TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256
+        - TLS_ECCPWD_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_AES_128_GCM_SHA256
+        - TLS_ECCPWD_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+        - TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384
+        - TLS_CHACHA20_POLY1305_SHA256
+
+entryPoints:
+  http:
+    address: :80
+    http:
+      redirections:
+        entryPoint:
+          to: https
+          scheme: https
+  https:
+    address: :443
+    asDefault: true
+
+  dashboard:
+    address: :4443
+
+serversTransport:
+  insecureSkipVerify: false
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    watch: true
+    network: proxy
+  file:
+    directory: /etc/traefik/conf.d
+    watch: true
+
+certificatesResolvers:
+  le_dns_cf:
+    acme:
+      caServer: https://acme-v02.api.letsencrypt.org/directory
+      email: ${TRAEFIK_ACME_EMAIL:?TRAEFIK_ACME_EMAIL is missing}
+      storage: ${TRAEFIK_ACME_FILE:-${TRAEFIK_ACME_PATH:-/etc/traefik/certs}/acme.json}
+      keyType: RSA4096 # 'EC256', 'EC384', 'RSA2048', 'RSA4096', 'RSA8192'. Default RSA4096
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - 1.1.1.1:53
+          - 1.0.0.1:53
+  le_staging_dns_cf:
+    acme:
+      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      email: ${TRAEFIK_ACME_EMAIL:?TRAEFIK_ACME_EMAIL is missing}
+      storage: ${TRAEFIK_ACME_FILE:-${TRAEFIK_ACME_PATH:-/etc/traefik/certs}/acme.json}
+      keyType: RSA4096 # 'EC256', 'EC384', 'RSA2048', 'RSA4096', 'RSA8192'. Default RSA4096
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - 1.1.1.1:53
+          - 1.0.0.1:53
+
+experimental:
+  plugins:
+    crowdsecBouncer:
+      moduleName: "github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
+      version: "v1.3.2"
+    staticResponse:
+      moduleName: "github.com/jdel/staticresponse"
+      version: "v0.0.1"
+    cloudflareProxy:
+      moduleName: "github.com/BetterCorp/cloudflarewarp"
+      version: "v1.3.3"

@@ -1,0 +1,8 @@
+http:
+  routers:
+    rtr-default:
+      tls:
+        domains:
+          - main: ${TRAEFIK_DEFAULT_SUBJECT_CN}
+            sans: ${TRAEFIK_DEFAULT_SUBJECT_AN}
+        certResolver: le_dns_cf
