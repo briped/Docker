@@ -1,0 +1,42 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: ${CONTAINER_NAME:-kuma}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    environment:
+    #  - PUID=1000
+    #  - PGID=1000
+      - UPTIME_KUMA_PORT=${UPTIME_KUMA_PORT:-3001}
+    #  - UPTIME_KUMA_SSL_KEY=/app/data/cert.key # Path to SSL key
+    #  - UPTIME_KUMA_SSL_CERT=/app/data/cert.pem # Path to SSL certificate
+    #  - UPTIME_KUMA_SSL_KEY_PASSPHRASE # SSL Key Passphrase
+    #  - UPTIME_KUMA_CLOUDFLARED_TOKEN # Cloudflare Tunnel Token - https://github.com/louislam/uptime-kuma/wiki/Reverse-Proxy-with-Cloudflare-Tunnel
+    #  - UPTIME_KUMA_DISABLE_FRAME_SAMEORIGIN=false # By default, Uptime Kuma is not allowed in iframe if the domain name is not the same as the parent.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/localtime:/etc/localtime:ro
+      - ${CONTAINER_BASEPATH:-/opt/docker/uptime-kuma}:/app/data
+    ports:
+      - ${CONTAINER_PORT_HTTP:-3001}:${UPTIME_KUMA_PORT=:-3001}
+    networks:
+      proxy:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-kuma}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-kuma}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-kuma}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-kuma}.middlewares=mdw-${TRAEFIK_SERVICE:-kuma}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-kuma}.entrypoints=https
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-kuma}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-kuma}.tls=true
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-kuma}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-kuma}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-kuma}.service=svc-${TRAEFIK_SERVICE:-kuma}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-kuma}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-kuma}.loadbalancer.server.port=${UPTIME_KUMA_PORT=:-3001}
