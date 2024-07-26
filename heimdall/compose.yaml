@@ -1,0 +1,36 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  heimdall:
+    image: lscr.io/linuxserver/heimdall:latest
+    container_name: ${CONTAINER_NAME:-heimdall}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+    volumes:
+      - ${CONTAINER_BASEPATH:-./}:/config
+    ports:
+      - ${CONTAINER_PORT_HTTP:-80}:80
+      - ${CONTAINER_PORT_HTTPS:-443}:443
+    networks:
+      proxy:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-heimdall}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-heimdall}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-heimdall}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-heimdall}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-heimdall}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-heimdall}.entrypoints=https
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-heimdall}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-heimdall}.tls=true
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-heimdall}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-heimdall}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-heimdall}.service=svc-${TRAEFIK_SERVICE:-heimdall}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-heimdall}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-heimdall}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-80}

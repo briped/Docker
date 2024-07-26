@@ -1,0 +1,42 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  homarr:
+    # https://homarr.dev/docs/getting-started/installation/
+    image: ghcr.io/ajnart/homarr:latest
+    container_name: ${CONTAINER_NAME:-homarr}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - PUID=${CONTAINER_UID:-1000}
+      - PGID=${CONTAINER_GID:-1000}
+      - DATABASE_URL=file:/app/data/configs/db.sqlite
+      #- DOCKER_GID=999 # Must be same as host docker group id
+    volumes:
+      - ${CONTAINER_BASEPATH:-./configs}:/app/data/configs
+      - ${CONTAINER_BASEPATH:-./icons}:/app/public/icons
+      - ${CONTAINER_BASEPATH:-./data}:/data
+      #- /var/run/docker.sock:/var/run/docker.sock # Optional, only if you want docker integration
+    ports:
+      - ${CONTAINER_PORT_HTTP:-7575}:7575
+      - '7575:7575'
+    networks:
+      proxy:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-homarr}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-homarr}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-homarr}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-homarr}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-homarr}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-homarr}.entrypoints=https
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-homarr}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-homarr}.tls=true
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-homarr}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-homarr}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-homarr}.service=svc-${TRAEFIK_SERVICE:-homarr}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-homarr}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-homarr}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-80}

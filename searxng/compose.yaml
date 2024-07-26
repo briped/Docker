@@ -1,0 +1,41 @@
+networks:
+  stack:
+  proxy:
+    external: true
+
+services:
+  searxng:
+    image: docker.io/searxng/searxng:latest
+    container_name: ${CONTAINER_NAME:-searxng}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      #- SEARXNG_BASE_URL=https://${SEARXNG_HOSTNAME:-localhost}/
+      #- INSTANCE_NAME=SearXNG
+      #- AUTOCOMPLETE=
+      #- BASE_URL=
+      #- MORTY_KEY=
+      #- MORTY_URL=
+      #- ${BIND_ADDRESS}=${BIND_ADDRESS:-8080}
+    volumes:
+      - ${CONTAINER_BASEPATH:-/opt/searxng}:/etc/searxng
+    ports:
+      - ${CONTAINER_PORT_HTTP:-8080}:8080
+    networks:
+      proxy:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-searxng}.plugin.crowdsecBouncer.crowdsecLapiKey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-searxng}.plugin.crowdsecBouncer.crowdsecLapiScheme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-searxng}.plugin.crowdsecBouncer.crowdsecLapiHost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-searxng}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-searxng}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-searxng}.entryPoints=https
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-searxng}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-searxng}.tls=true
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-searxng}.tls.certResolver=${TRAEFIK_CERTRESOLVER:-le_dns_cf}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-searxng}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-searxng}.service=svc-${TRAEFIK_SERVICE:-searxng}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-searxng}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-searxng}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-8080}

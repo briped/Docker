@@ -1,0 +1,23 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  firefox:
+    # https://docs.linuxserver.io/images/docker-firefox/
+    image: lscr.io/linuxserver/firefox:latest
+    container_name: ${CONTAINER_NAME:-firefox}
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    shm_size: "1gb"
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ${CONTAINER_BASEPATH:-/opt/firefox}:/config
+    ports:
+      - ${CONTAINER_PORT_HTTP:-3000}:3000
+      - ${CONTAINER_PORT_HTTPS:-3001}:3001
+    networks:
+      proxy:

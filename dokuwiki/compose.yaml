@@ -22,16 +22,16 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-dokuwiki}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-dokuwiki}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-dokuwiki}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-dokuwiki}.plugin.crowdsecBouncer.crowdsecLapiKey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-dokuwiki}.plugin.crowdsecBouncer.crowdsecLapiScheme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-dokuwiki}.plugin.crowdsecBouncer.crowdsecLapiHost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dokuwiki}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-dokuwiki}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dokuwiki}.entrypoints=https
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dokuwiki}.entryPoints=https
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dokuwiki}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dokuwiki}.tls=true
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dokuwiki}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dokuwiki}.tls.certResolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dokuwiki}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dokuwiki}.tls.domains[0].sans=${TRAEFIK_SUBJECT_AN:-}
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-dokuwiki}.service=svc-${TRAEFIK_SERVICE:-dokuwiki}
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-dokuwiki}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-dokuwiki}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-80}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-dokuwiki}.loadBalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
+      - traefik.http.services.svc-${TRAEFIK_SERVICE:-dokuwiki}.loadBalancer.server.port=${TRAEFIK_SERVICE_PORT:-80}

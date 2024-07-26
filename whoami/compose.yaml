@@ -23,13 +23,17 @@ services:
       - /etc/localtime:/etc/localtime:ro
     #ports:
     #  - ${CONTAINER_PORT_HTTP:-${WHOAMI_PORT_NUMBER:-80}}:${WHOAMI_PORT_NUMBER:-80}
+    networks:
+      proxy:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
+      - traefik.http.middlewares.mdw-ipAllow-${TRAEFIK_SERVICE:-whoami}.ipAllowList.sourceRange=${TRAEFIK_IPALLOW_RANGE:-0.0.0.0/0}
       - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-whoami}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:?CROWDSEC_LAPIKEY is missing}
       - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-whoami}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
       - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-whoami}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-whoami}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.middlewares=mdw-ipAllow-${TRAEFIK_SERVICE:-whoami},mdw-bouncer-${TRAEFIK_SERVICE:-whoami}
+      #- traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-whoami}
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.entrypoints=https
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.tls=true
@@ -38,5 +42,3 @@ services:
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.service=svc-${TRAEFIK_SERVICE:-whoami}
       - traefik.http.services.svc-${TRAEFIK_SERVICE:-whoami}.loadbalancer.server.scheme=http
       - traefik.http.services.svc-${TRAEFIK_SERVICE:-whoami}.loadbalancer.server.port=${WHOAMI_PORT_NUMBER:-80}
-    networks:
-      proxy:
