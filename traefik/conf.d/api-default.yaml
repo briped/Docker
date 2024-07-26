@@ -1,0 +1,4 @@
+api:
+  dashboard: true
+  debug: true
+  disableDashboardAd: true

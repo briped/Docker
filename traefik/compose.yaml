@@ -12,14 +12,14 @@ services:
       - --configFile=${TRAEFIK_CONFIG_FILE:-/etc/traefik/traefik.yaml}
     security_opt:
       - no-new-privileges:true
-    environment:
-      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN:?CF_DNS_API_TOKEN is missing}
+    env_file:
+      - .env
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ${CONTAINER_BASEPATH}/traefik.yaml:${TRAEFIK_CONFIG_FILE:-/etc/traefik/traefik.yaml}:ro
-      - ${CONTAINER_BASEPATH}/conf.d:/etc/traefik/conf.d:ro
-      - ${CONTAINER_BASEPATH}/certs/acme.json:${TRAEFIK_ACME_FILE:-${TRAEFIK_ACME_PATH:-/etc/traefik/certs}/acme.json}
+      - ${CONTAINER_BASEPATH:-/etc/traefik}/traefik.yaml:${TRAEFIK_CONFIG_FILE:-/etc/traefik/traefik.yaml}:ro
+      - ${CONTAINER_BASEPATH:-/etc/traefik}/conf.d:/etc/traefik/conf.d:ro
+      - ${CONTAINER_BASEPATH:-/etc/traefik}/certs/acme.json:${TRAEFIK_ACME_FILE:-${TRAEFIK_ACME_PATH:-/etc/traefik/certs}/acme.json}
       - ${CONTAINER_LOGPATH:-/var/log/traefik}/traefik.log:${TRAEFIK_LOG_FILE:-${TRAEFIK_LOG_PATH:-/var/log/traefik}/traefik.log}
       - ${CONTAINER_LOGPATH:-/var/log/traefik}/access.log:${TRAEFIK_ACCESSLOG_FILE:-${TRAEFIK_LOG_PATH:-/var/log/traefik}/access.log}
     ports:
@@ -31,11 +31,15 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.mdw-bauth-${TRAEFIK_SERVICE:-traefik}.basicauth.users=${TRAEFIK_LOGIN}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-traefik}.middlewares=mdw-bauth-${TRAEFIK_SERVICE:-traefik}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-traefik}.entrypoints=dashboard
+      #- traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-traefik}.plugin.crowdsecBouncer.crowdsecLapiKey=${CROWDSEC_LAPIKEY:-}
+      #- traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-traefik}.plugin.crowdsecBouncer.crowdsecLapiScheme=${CROWDSEC_LAPISCHEME:-http}
+      #- traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-traefik}.plugin.crowdsecBouncer.crowdsecLapiHost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.middlewares.mdw-auth-${TRAEFIK_SERVICE:-traefik}.basicAuth.users=${TRAEFIK_LOGIN}
+      #- traefik.http.routers.rtr-${TRAEFIK_SERVICE:-traefik}.middlewares=mdw-auth-${TRAEFIK_SERVICE:-traefik},mdw-bouncer-${TRAEFIK_SERVICE:-traefik}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-traefik}.middlewares=mdw-auth-${TRAEFIK_SERVICE:-traefik}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-traefik}.entryPoints=dashboard
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-traefik}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-traefik}.tls=true
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-traefik}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
+      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-traefik}.tls.certResolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-traefik}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-traefik}.service=api@internal
