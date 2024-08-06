@@ -3,14 +3,14 @@ networks:
     external: true
 
 services:
-  whoami:
+  whoamiHTTP:
     image: traefik/whoami
-    container_name: ${CONTAINER_NAME:-whoami}
-    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    container_name: ${CONTAINER_NAME:-whoamiHTTP}
+    hostname: ${CONTAINER_HOSTNAME}
     restart: unless-stopped
     #command:
-    #  - --port=${PORT_HTTP0:-80}
-    #  - --name=
+    #  - --port=${WHOAMI_PORT_NUMBER:-80}
+    #  - --name=${WHOAMI_NAME}
     #  - --verbose=false
     #  - --cert=cert.crt
     #  - --key=cert.key
@@ -22,7 +22,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
     #ports:
-    #  - ${CONTAINER_PORT_HTTP:-${WHOAMI_PORT_NUMBER:-80}}:${WHOAMI_PORT_NUMBER:-80}
+    #  - ${WHOAMI_PORT_NUMBER:-80}:${WHOAMI_PORT_NUMBER:-80}
     networks:
       proxy:
     labels:
@@ -42,3 +42,28 @@ services:
       - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.service=svc-${TRAEFIK_SERVICE:-whoami}
       - traefik.http.services.svc-${TRAEFIK_SERVICE:-whoami}.loadbalancer.server.scheme=http
       - traefik.http.services.svc-${TRAEFIK_SERVICE:-whoami}.loadbalancer.server.port=${WHOAMI_PORT_NUMBER:-80}
+
+  # whoamiTCP:
+  #   image: traefik/whoamitcp
+  #   container_name: ${CONTAINER_NAME:-whoamiTCP}
+  #   hostname: ${CONTAINER_HOSTNAME}
+  #   restart: unless-stopped
+  #   #command:
+  #   #  - --port=:8080
+  #   #  - --name=
+  #   #  - --certFile=
+  #   #  - --keyFile=
+  #   #  - --banner=false
+  #   ports:
+  #     - 8080:8080/tcp
+
+  # whoamiUDP:
+  #   image: traefik/whoamiudp
+  #   container_name: ${CONTAINER_NAME:-whoamiUDP}
+  #   hostname: ${CONTAINER_HOSTNAME}
+  #   restart: unless-stopped
+  #   #command:
+  #   #  - --port=:8080
+  #   #  - --name=
+  #   ports:
+  #     - 8080:8080/udp

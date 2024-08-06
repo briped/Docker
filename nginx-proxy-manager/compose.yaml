@@ -10,15 +10,11 @@ services:
     restart: unless-stopped
     environment:
       - TZ=${TZ:-Europe/Copenhagen}
-      - PUID=1000
-      - PGID=1000
+      - PUID=${CONTAINER_UID:-1000}
+      - PGID=${CONTAINER_GID:-1000}
       - DB_SQLITE_FILE=/data/npm.sqlite
-      #- INITIAL_ADMIN_EMAIL
-      #- INITIAL_ADMIN_PASSWORD
-      #- DISABLE_IPV6
-      #- DEBUG
-      #- LE_STAGING
-      #- X_FRAME_OPTIONS
+      #- INITIAL_ADMIN_EMAIL=admin@example.com
+      #- INITIAL_ADMIN_PASSWORD=changeme
     volumes:
       - ${CONTAINER_BASEPATH:-/opt/nginx-proxy-manager}:/data
       - ${CONTAINER_BASEPATH:-/opt/nginx-proxy-manager}/letsencrypt:/etc/letsencrypt

@@ -8,6 +8,9 @@ services:
     image: ghcr.io/zitadel/zitadel:latest
     container_name: ${CONTAINER_NAME:-zitadel}
     command: 'start-from-init --masterkeyFromEnv'
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       - ZITADEL_PORT=${ZITADEL_PORT:-8080}
       - ZITADEL_EXTERNALPORT=443
