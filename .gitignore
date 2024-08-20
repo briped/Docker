@@ -7,8 +7,6 @@ Thumbs.db
 # ignore logs
 *.log
 
-# ignore env files
-*.env
 # ignore all dotfiles
 .*
 !.gitignore

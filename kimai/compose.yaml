@@ -1,0 +1,75 @@
+networks:
+  stack:
+  proxy:
+    external: true
+
+services:
+  kimai:
+    # https://www.kimai.org/documentation/docker.html
+    image: kimai/kimai2:latest
+    container_name: kimai
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ${CONTAINER_BASEPATH:-/opt/kimai}/public:/opt/kimai/public
+      - ${CONTAINER_BASEPATH:-/opt/kimai}/data:/opt/kimai/var/data
+    networks:
+      stack:
+
+  db:
+    image: mariadb
+    container_name: kimai_db
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - MARIADB_ROOT_PASSWORD=${DB_PASS:-kimai}
+      - MARIADB_DATABASE=${DB_BASE:-kimai}
+      - MARIADB_USER=${DB_USER:-kimai}
+      - MARIADB_PASSWORD=${DB_PASS:-kimai}
+    volumes:
+      - ${CONTAINER_BASEPATH:-/opt/kimai}/db:/var/lib/mysql
+    networks:
+      stack:
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - --connect
+        - --innodb_initialized
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    image: nginx:alpine
+    container_name: kimai_web
+    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    restart: unless-stopped
+    depends_on:
+      - kimai
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+    volumes:
+      - ${CONTAINER_BASEPATH:-/opt/kimai}/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${CONTAINER_BASEPATH:-/opt/kimai}/public:/opt/kimai/public:ro
+    ports:
+      - ${CONTAINER_PORT_HTTP:-80}:80
+    networks:
+      stack:
+      proxy:
+    labels:
+      - traefik.enable=false
+      - traefik.docker.network=proxy
+      - traefik.http.middlewares.mdw-crowdsec-kimai.plugin.crowdsecBouncer.crowdsecLapiKey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.mdw-crowdsec-kimai.plugin.crowdsecBouncer.crowdsecLapiScheme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.mdw-crowdsec-kimai.plugin.crowdsecBouncer.crowdsecLapiHost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.rtr-kimai.middlewares=mdw-crowdsec-kimai
+      - traefik.http.routers.rtr-kimai.entryPoints=https
+      - traefik.http.routers.rtr-kimai.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
+      - traefik.http.routers.rtr-kimai.service=svc-kimai
+      - traefik.http.services.svc-kimai.loadBalancer.server.scheme=http
+      - traefik.http.services.svc-kimai.loadBalancer.server.port=80
