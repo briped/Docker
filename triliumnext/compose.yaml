@@ -1,0 +1,32 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  triliumNext:
+    image: triliumNext/notes:latest
+    container_name: triliumNext
+    hostname: ${CONTAINER_HOSTNAME}
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ${CONTAINER_BASEPATH:-~/trilium-data}:/home/node/trilium-data
+    ports:
+      - 8080:8080
+    networks:
+      proxy:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.services.svc-triliumNext.loadBalancer.server.scheme=http
+      - traefik.http.services.svc-triliumNext.loadBalancer.server.port=8080
+      - traefik.http.middlewares.mdw-redirect-triliumNext.redirectRegex.regex=^(https?://[^/]+)(/${TRAEFIK_SVC_PATHPREFIX:-notes})?/?([^/].*)?$
+      - traefik.http.middlewares.mdw-redirect-triliumNext.redirectRegex.replacement=$${1}/${TRAEFIK_SVC_PATHPREFIX:-notes}/$${3}
+      - traefik.http.middlewares.mdw-redirect-triliumNext.redirectRegex.permanent=true
+      - traefik.http.middlewares.mdw-rmPrefix-triliumNext.stripPrefix.prefixes=/${TRAEFIK_SVC_PATHPREFIX:-notes}
+      - traefik.http.middlewares.mdw-chain-triliumNext.chain.middlewares=mdw-redirect-triliumNext,mdw-rmPrefix-triliumNext
+      - traefik.http.routers.rtr-triliumNext.middlewares=mdw-chain-triliumNext
+      - traefik.http.routers.rtr-triliumNext.service=svc-triliumNext
+      - traefik.http.routers.rtr-triliumNext.entryPoints=https
+      - traefik.http.routers.rtr-triliumNext.rule=Host(`${TRAEFIK_SVC_HOST:?}`) && (PathPrefix(`/${TRAEFIK_SVC_PATHPREFIX:-notes}`) || HeaderRegexp(`Referer`, `.+/${TRAEFIK_SVC_PATHPREFIX:-notes}/?.*`))
