@@ -1,0 +1,32 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  # https://github.com/thomiceli/opengist
+  opengist:
+    image: ghcr.io/thomiceli/opengist:latest
+    container_name: ${CONTAINER_HOSTNAME:-opengist}
+    hostname: ${CONTAINER_HOSTNAME}
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ${CONTAINER_BASEPATH:-/opt/opengist}:/opengist
+    #ports:
+    #  - 6157:6157 # HTTP port
+    #  - 2222:2222 # SSH port, can be removed if you don't use SSH
+    networks:
+      proxy:
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.rtr-opengist.entryPoints=https
+      - traefik.http.routers.rtr-opengist.rule=Host(`${TRAEFIK_SUBJECT_CN:?}`)
+      - traefik.http.middlewares.mdw-bouncer-opengist.plugin.crowdsecBouncer.crowdsecLapiKey=${CROWDSEC_LAPIKEY:-}
+      - traefik.http.middlewares.mdw-bouncer-opengist.plugin.crowdsecBouncer.crowdsecLapiScheme=${CROWDSEC_LAPISCHEME:-http}
+      - traefik.http.middlewares.mdw-bouncer-opengist.plugin.crowdsecBouncer.crowdsecLapiHost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.rtr-opengist.middlewares=mdw-bouncer-opengist
+      - traefik.http.services.svc-opengist.loadBalancer.server.scheme=http
+      - traefik.http.services.svc-opengist.loadBalancer.server.port=6157
+      - traefik.http.routers.rtr-opengist.service=svc-opengist

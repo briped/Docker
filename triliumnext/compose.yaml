@@ -4,7 +4,7 @@ networks:
 
 services:
   triliumNext:
-    image: triliumNext/notes:latest
+    image: triliumnext/notes:latest
     container_name: triliumNext
     hostname: ${CONTAINER_HOSTNAME}
     restart: unless-stopped
