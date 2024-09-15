@@ -11,18 +11,8 @@ services:
     restart: unless-stopped
     depends_on:
       - db
-    environment:
-      - TZ=${TZ:-UTC}
-      - APP_PORT=${APP_PORT:-22300}
-      - APP_BASE_URL=${APP_BASE_URL:-${TRAEFIK_SUBJECT_CN:+https://${TRAEFIK_SUBJECT_CN}}${TRAEFIK_SUBJECT_CN:-${HOSTNAME:+http://${HOSTNAME}}${HOSTNAME:-http://localhost}}}
-      - DB_CLIENT=pg
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
-      - POSTGRES_DATABASE=${POSTGRES_DATABASE:-joplin}
-      - POSTGRES_USER=${POSTGRES_USER:-joplin}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?}
-    volumes:
-      - /opt/joplin:/tmp
+    env_file:
+      - .env
     networks:
       stack:
       proxy:
@@ -42,10 +32,10 @@ services:
     hostname: Cable
     restart: unless-stopped
     environment:
-      - TZ=${TZ:-Europe/Copenhagen}
-      - POSTGRES_DB=${POSTGRES_DATABASE:-joplin}
+      - TZ=${TZ:-UTC}
       - POSTGRES_USER=${POSTGRES_USER:-joplin}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?}
+      - POSTGRES_DB=${POSTGRES_DATABASE:-joplin}
     volumes:
       - /opt/joplin/db:/var/lib/postgresql/data
     networks:
