@@ -2,31 +2,31 @@ services:
   agent:
     image: portainer/agent:latest
     container_name: ${CONTAINER_AGENT_NAME:-portainer_agent}
-    hostname: ${CONTAINER_AGENT_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     environment:
-      - TZ=${TZ:-Europe/Copenhagen}
+      - TZ=${TZ:-UTC}
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - /var/lib/docker/volumes:/var/lib/docker/volumes
     ports:
-      - ${CONTAINER_AGENT_PORT_HTTP:-9001}:9001
+      - 9001:9001
 
   portainer:
     image: portainer/portainer-ce:latest
     container_name: ${CONTAINER_NAME:-portainer}
-    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     #command:
     #  - --sslcert=
     #  - --sslkey=
     environment:
-      - TZ=${TZ:-Europe/Copenhagen}
+      - TZ=${TZ:-UTC}
     ports:
-      - ${CONTAINER_PORT_HTTPS:-9443}:9443
-      - ${CONTAINER_PORT_HTTP:-9000}:9000
-      - ${CONTAINER_PORT_API:-8000}:8000
+      - 9443:9443
+      - 9000:9000
+      - 8000:8000
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock

@@ -7,6 +7,8 @@ services:
   zitadel:
     image: ghcr.io/zitadel/zitadel:latest
     container_name: ${CONTAINER_NAME:-zitadel}
+    hostname: ${HOSTNAME}
+    restart: unless-stopped
     command: 'start-from-init --masterkeyFromEnv'
     depends_on:
       db:
@@ -14,7 +16,7 @@ services:
     environment:
       - ZITADEL_PORT=${ZITADEL_PORT:-8080}
       - ZITADEL_EXTERNALPORT=443
-      - ZITADEL_EXTERNALDOMAIN=${ZITADEL_EXTERNALDOMAIN:-${TRAEFIK_SUBJECT_CN:?ZITADEL_EXTERNALDOMAIN / TRAEFIK_SUBJECT_CN is missing}}
+      - ZITADEL_EXTERNALDOMAIN=${ZITADEL_EXTERNALDOMAIN:-${TRAEFIK_SUBJECT_CN:?}}
       - ZITADEL_EXTERNALSECURE=true
       - ZITADEL_TLS_ENABLED=false
       - ZITADEL_MASTERKEY=${ZITADEL_MASTERKEY:?ZITADEL_MASTERKEY is missing}
@@ -25,7 +27,7 @@ services:
       - ZITADEL_DATABASE_POSTGRES_USER_PASSWORD=${ZITADEL_DATABASE_POSTGRES_USER_PASSWORD:-No-Idea-What-This-Is-Used-For}
       - ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE=disable
       - ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME=${ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME:-root}
-      - ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD=${ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD:-Key4-Pesky-Zitadel-Query-Language}
+      - ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD=${ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD:?}
       - ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE=disable
       - ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME=${ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME:-admin@localhost}
       - ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD=${ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD:-Change_me_1st}
@@ -40,23 +42,16 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
     ports:
-      - ${CONTAINER_PORT_HTTP:-${ZITADEL_PORT:-8080}}:${ZITADEL_PORT:-8080}
+      - ${ZITADEL_PORT:-8080}:${ZITADEL_PORT:-8080}
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-zitadel}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-zitadel}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-zitadel}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-zitadel}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.entrypoints=https
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.tls=true
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-zitadel}.service=svc-${TRAEFIK_SERVICE:-zitadel}
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-zitadel}.loadbalancer.server.scheme=h2c
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-zitadel}.loadbalancer.server.port=${PORT1:-${ZITADEL_PORT:-8080}}
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-zitadel}.loadbalancer.passHostHeader=true
+      - traefik.http.routers.rtr-zitadel.entrypoints=https
+      - traefik.http.routers.rtr-zitadel.rule=Host(`${TRAEFIK_SUBJECT_CN:?g}`)
+      - traefik.http.services.svc-zitadel.loadbalancer.server.scheme=h2c
+      - traefik.http.services.svc-zitadel.loadbalancer.server.port=${ZITADEL_PORT:-8080}
+      - traefik.http.services.svc-zitadel.loadbalancer.passHostHeader=true
+      - traefik.http.routers.rtr-zitadel.service=svc-zitadel
     networks:
       stack:
       proxy:
@@ -64,19 +59,23 @@ services:
   db:
     image: postgres:16-alpine
     container_name: ${CONTAINER_DB_NAME:-zitadel_db}
-    hostname: ${CONTAINER_DB_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     environment:
       - POSTGRES_DB=${ZITADEL_DATABASE_POSTGRES_DATABASE:-zitadel}
       - POSTGRES_USER=${ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME:-root}
-      - POSTGRES_PASSWORD=${ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD:-Key4-Pesky-Zitadel-Query-Language}
+      - POSTGRES_PASSWORD=${ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD:?}
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ${CONTAINER_DB_BASEPATH:-${CONTAINER_BASEPATH:-/opt/zitadel}/db}:/var/lib/postgresql/data
     networks:
       stack:
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-d", "${ZITADEL_DATABASE_POSTGRES_DATABASE:-zitadel}", "-U", "postgres"]
+      test:
+        - CMD-SHELL
+        - pg_isready
+        - --dbname=${ZITADEL_DATABASE_POSTGRES_DATABASE:-zitadel}
+        - --username=postgres
       interval: '10s'
       timeout: '30s'
       retries: 5

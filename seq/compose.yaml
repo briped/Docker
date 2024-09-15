@@ -6,32 +6,27 @@ services:
   seq:
     image: datalust/seq
     container_name: seq
-    hostname: Cable
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     env_file:
       - .env
     volumes:
       - ${CONTAINER_BASEPATH:-/opt/seq}:/data
     ports:
-      - ${CONTAINER_PORT_HTTP:-80}:80
-      - ${CONTAINER_PORT_INGESTION:-5341}:5341
+      - 80:80
+      - 5341:5341
     networks:
       proxy:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-
-      - traefik.http.middlewares.mdw-crowdsec-seq.plugin.crowdsecBouncer.crowdsecLapiKey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.mdw-crowdsec-seq.plugin.crowdsecBouncer.crowdsecLapiScheme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.mdw-crowdsec-seq.plugin.crowdsecBouncer.crowdsecLapiHost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
+      - traefik.http.routers.rtr-seq.entryPoints=https
+      - traefik.http.routers.rtr-seq.rule=${TRAEFIK_ROUTER_RULE:?TRAEFIK_ROUTER_RULE is missing}
       - traefik.http.middlewares.mdw-redirect-seq.redirectRegex.regex=^(https://[^/]+/seq)([^/].)?$
       - traefik.http.middlewares.mdw-redirect-seq.redirectRegex.replacement=$${1}/$${2}
       - traefik.http.middlewares.mdw-rmPrefix-seq.stripPrefix.prefixes=/seq
       - traefik.http.middlewares.mdw-chain-seq.chain.middlewares=mdw-redirect-seq,mdw-rmPrefix-seq
-
       - traefik.http.routers.rtr-seq.middlewares=mdw-chain-seq
-      - traefik.http.routers.rtr-seq.entryPoints=https
-      - traefik.http.routers.rtr-seq.rule=${TRAEFIK_ROUTER_RULE:?TRAEFIK_ROUTER_RULE is missing}
-      - traefik.http.routers.rtr-seq.service=svc-seq
       - traefik.http.services.svc-seq.loadBalancer.server.scheme=http
       - traefik.http.services.svc-seq.loadBalancer.server.port=80
+      - traefik.http.routers.rtr-seq.service=svc-seq

@@ -4,9 +4,9 @@ services:
     image: ghcr.io/advplyr/audiobookshelf:latest
     restart: unless-stopped
     environment:
-      - TZ=${TZ:-Europe/Copenhagen}
+      - TZ=${TZ:-UTC}
     ports:
-      - ${CONTAINER_PORT_HTTP:-80}:80
+      - 80:80
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ${CONTAINER_BASEPATH:-.}/config:/config

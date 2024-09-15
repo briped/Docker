@@ -8,7 +8,7 @@ services:
     # https://www.kimai.org/documentation/docker.html
     image: kimai/kimai2:latest
     container_name: kimai
-    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     env_file:
       - .env
@@ -21,14 +21,10 @@ services:
   db:
     image: mariadb
     container_name: kimai_db
-    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
-    environment:
-      - TZ=${TZ:-Europe/Copenhagen}
-      - MARIADB_ROOT_PASSWORD=${DB_PASS:-kimai}
-      - MARIADB_DATABASE=${DB_BASE:-kimai}
-      - MARIADB_USER=${DB_USER:-kimai}
-      - MARIADB_PASSWORD=${DB_PASS:-kimai}
+    env_file:
+      - .env
     volumes:
       - ${CONTAINER_BASEPATH:-/opt/kimai}/db:/var/lib/mysql
     networks:
@@ -51,25 +47,21 @@ services:
     restart: unless-stopped
     depends_on:
       - kimai
-    environment:
-      - TZ=${TZ:-Europe/Copenhagen}
+    env_file:
+      - .env
     volumes:
       - ${CONTAINER_BASEPATH:-/opt/kimai}/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ${CONTAINER_BASEPATH:-/opt/kimai}/public:/opt/kimai/public:ro
-    ports:
-      - ${CONTAINER_PORT_HTTP:-80}:80
+    #ports:
+    #  - 80:80
     networks:
       stack:
       proxy:
     labels:
       - traefik.enable=false
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.mdw-crowdsec-kimai.plugin.crowdsecBouncer.crowdsecLapiKey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.mdw-crowdsec-kimai.plugin.crowdsecBouncer.crowdsecLapiScheme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.mdw-crowdsec-kimai.plugin.crowdsecBouncer.crowdsecLapiHost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.rtr-kimai.middlewares=mdw-crowdsec-kimai
       - traefik.http.routers.rtr-kimai.entryPoints=https
-      - traefik.http.routers.rtr-kimai.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
-      - traefik.http.routers.rtr-kimai.service=svc-kimai
+      - traefik.http.routers.rtr-kimai.rule=Host(`${TRAEFIK_SUBJECT_CN:?}`)
       - traefik.http.services.svc-kimai.loadBalancer.server.scheme=http
       - traefik.http.services.svc-kimai.loadBalancer.server.port=80
+      - traefik.http.routers.rtr-kimai.service=svc-kimai

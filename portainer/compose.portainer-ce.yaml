@@ -2,17 +2,17 @@ services:
   portainer:
     image: portainer/portainer-ce:latest
     container_name: ${CONTAINER_NAME:-portainer}
-    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     #command:
     #  - --sslcert=
     #  - --sslkey=
     environment:
-      - TZ=${TZ:-Europe/Copenhagen}
+      - TZ=${TZ:-UTC}
     ports:
-      - ${CONTAINER_PORT_HTTPS:-9443}:9443
-      - ${CONTAINER_PORT_HTTP:-9000}:9000
-      - ${CONTAINER_PORT_API:-8000}:8000
+      - 9443:9443
+      - 9000:9000
+      - 8000:8000
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock

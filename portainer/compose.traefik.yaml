@@ -10,11 +10,8 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-portainer}.entrypoints=https
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-portainer}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-portainer}.tls=true
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-portainer}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-portainer}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-portainer}.service=svc-${TRAEFIK_SERVICE:-portainer}
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-portainer}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-portainer}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-9000}
+      - traefik.http.routers.rtr-portainer.entrypoints=https
+      - traefik.http.routers.rtr-portainer.rule=Host(`${TRAEFIK_SUBJECT_CN:?}`)
+      - traefik.http.services.svc-portainer.loadbalancer.server.scheme=http
+      - traefik.http.services.svc-portainer.loadbalancer.server.port=9000
+      - traefik.http.routers.rtr-portainer.service=svc-portainer

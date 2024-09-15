@@ -8,7 +8,7 @@ services:
     ## https://github.com/Yureien/YABin
     image: yureien/yabin:latest
     container_name: ${CONTAINER_NAME:-yabin}
-    hostname: ${CONTAINER_HOSTNAME}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     depends_on:
       - db
@@ -22,10 +22,6 @@ services:
       - traefik.docker.network=proxy
       - traefik.http.routers.rtr-yabin.entrypoints=https
       - traefik.http.routers.rtr-yabin.rule=Host(`${TRAEFIK_SUBJECT_CN:?}`)
-      - traefik.http.middlewares.mdw-bouncer-yabin.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.mdw-bouncer-yabin.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.mdw-bouncer-yabin.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.rtr-yabin.middlewares=mdw-bouncer-yabin
       - traefik.http.services.svc-yabin.loadbalancer.server.scheme=http
       - traefik.http.services.svc-yabin.loadbalancer.server.port=${PORT:-3000}
       - traefik.http.routers.rtr-yabin.service=svc-yabin
@@ -33,11 +29,12 @@ services:
   db:
     image: postgres:15-alpine
     container_name: ${CONTAINER_DB_NAME:-yabin_db}
-    hostname: ${CONTAINER_HOSTNAME}
+    hostname: ${HOSTNAME}
     restart: always
     environment:
+      - TZ=${TZ:-UTC}
       - POSTGRES_USER=${DB_USER:-yabin}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-Yet-Another-Key4-Pesky-Query-Language}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?}
       - POSTGRES_DB=${DB_NAME:-yabin}
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:

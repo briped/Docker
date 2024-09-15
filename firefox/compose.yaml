@@ -7,32 +7,25 @@ services:
     # https://docs.linuxserver.io/images/docker-firefox/
     image: lscr.io/linuxserver/firefox:latest
     container_name: ${CONTAINER_NAME:-firefox}
-    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     shm_size: "1gb"
     environment:
-      - TZ=${TZ:-Europe/Copenhagen}
-      - PUID=${CONTAINER_UID:-1000}
-      - PGID=${CONTAINER_GID:-1000}
+      - TZ=${TZ:-UTC}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
     volumes:
       - ${CONTAINER_BASEPATH:-/opt/firefox}:/config
-    ports:
-      - ${CONTAINER_PORT_HTTP:-3000}:3000
-      - ${CONTAINER_PORT_HTTPS:-3001}:3001
+    #ports:
+    #  - 3000:3000
+    #  - 3001:3001
     networks:
       proxy:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-firefox}.plugin.crowdsecBouncer.crowdsecLapiKey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-firefox}.plugin.crowdsecBouncer.crowdsecLapiScheme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-firefox}.plugin.crowdsecBouncer.crowdsecLapiHost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-firefox}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-firefox}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-firefox}.entryPoints=https
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-firefox}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-firefox}.tls=true
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-firefox}.tls.certResolver=${TRAEFIK_CERTRESOLVER:-le_dns_cf}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-firefox}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-firefox}.service=svc-${TRAEFIK_SERVICE:-firefox}
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-firefox}.loadBalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-firefox}.loadBalancer.server.port=3000
+      - traefik.http.routers.rtr-firefox.entryPoints=https
+      - traefik.http.routers.rtr-firefox.rule=Host(`${TRAEFIK_SUBJECT_CN:?}`)
+      - traefik.http.services.svc-firefox.loadBalancer.server.scheme=http
+      - traefik.http.services.svc-firefox.loadBalancer.server.port=3000
+      - traefik.http.routers.rtr-firefox.service=svc-firefox

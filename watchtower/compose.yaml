@@ -2,7 +2,7 @@ services:
   watchtower:
     image: containrrr/watchtower
     container_name: ${CONTAINER_NAME:-watchtower}
-    hostname: ${CONTAINER_HOSTNAME}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     env_file:
       - .env

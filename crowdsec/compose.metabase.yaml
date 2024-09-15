@@ -2,7 +2,7 @@ services:
   metabase:
     image: metabase/metabase:latest
     container_name: ${CONTAINER_MB_NAME:-metabase}
-    hostname: ${CONTAINER_MB_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: always
     depends_on:
       - crowdsec
@@ -13,7 +13,7 @@ services:
     volumes:
       - ${CONTAINER_MB_BASEPATH:-${CONTAINER_BASEPATH:-/opt/crowdsec}/metabase-data}:/metabase-data
     ports:
-      - ${CONTAINER_MB_PORT_HTTP:-3000}:3000
+      - 3000:3000
     networks:
       - proxy
     healthcheck:

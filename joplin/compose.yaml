@@ -1,0 +1,52 @@
+networks:
+  stack:
+  proxy:
+    external: true
+
+services:
+  joplin:
+    image: joplin/server:latest
+    container_name: joplin
+    hostname: ${HOSTNAME}
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - TZ=${TZ:-UTC}
+      - APP_PORT=${APP_PORT:-22300}
+      - APP_BASE_URL=${APP_BASE_URL:-${TRAEFIK_SUBJECT_CN:+https://${TRAEFIK_SUBJECT_CN}}${TRAEFIK_SUBJECT_CN:-${HOSTNAME:+http://${HOSTNAME}}${HOSTNAME:-http://localhost}}}
+      - DB_CLIENT=pg
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE:-joplin}
+      - POSTGRES_USER=${POSTGRES_USER:-joplin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?}
+    volumes:
+      - /opt/joplin:/tmp
+    networks:
+      stack:
+      proxy:
+    #ports:
+    #  - ${APP_PORT:-22300}:22300
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.rtr-joplin.entryPoints=https
+      - traefik.http.routers.rtr-joplin.rule=Host(`${TRAEFIK_SUBJECT_CN:?}`)
+      - traefik.http.services.svc-joplin.loadBalancer.server.scheme=http
+      - traefik.http.services.svc-joplin.loadBalancer.server.port=${APP_PORT:-22300}
+      - traefik.http.routers.rtr-joplin.service=svc-joplin
+  db:
+    image: postgres:16
+    container_name: joplin_db
+    hostname: Cable
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Copenhagen}
+      - POSTGRES_DB=${POSTGRES_DATABASE:-joplin}
+      - POSTGRES_USER=${POSTGRES_USER:-joplin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?}
+    volumes:
+      - /opt/joplin/db:/var/lib/postgresql/data
+    networks:
+      stack:

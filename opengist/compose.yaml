@@ -7,7 +7,7 @@ services:
   opengist:
     image: ghcr.io/thomiceli/opengist:latest
     container_name: ${CONTAINER_HOSTNAME:-opengist}
-    hostname: ${CONTAINER_HOSTNAME}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     env_file:
       - .env
@@ -23,10 +23,6 @@ services:
       - traefik.docker.network=proxy
       - traefik.http.routers.rtr-opengist.entryPoints=https
       - traefik.http.routers.rtr-opengist.rule=Host(`${TRAEFIK_SUBJECT_CN:?}`)
-      - traefik.http.middlewares.mdw-bouncer-opengist.plugin.crowdsecBouncer.crowdsecLapiKey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.mdw-bouncer-opengist.plugin.crowdsecBouncer.crowdsecLapiScheme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.mdw-bouncer-opengist.plugin.crowdsecBouncer.crowdsecLapiHost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.rtr-opengist.middlewares=mdw-bouncer-opengist
       - traefik.http.services.svc-opengist.loadBalancer.server.scheme=http
       - traefik.http.services.svc-opengist.loadBalancer.server.port=6157
       - traefik.http.routers.rtr-opengist.service=svc-opengist

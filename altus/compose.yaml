@@ -3,10 +3,10 @@ services:
   altus:
     image: lscr.io/linuxserver/altus:latest
     container_name: ${CONTAINER_NAME:-altus}
-    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     environment:
-      - TZ=${TZ:-Europe/Copenhagen}
+      - TZ=${TZ:-UTC}
       - PUID=${CONTAINER_UID:-1000}
       - PGID=${CONTAINER_GID:-1000}
       - CUSTOM_PORT=${CUSTOM_PORT:-3000}
@@ -16,8 +16,8 @@ services:
       - TITLE=${TITLE:-WhatsApp - KasmVNC}
       - SUBFOLDER=${RPROXY_PATH}
     volumes:
-      - ${CONTAINER_BASEPATH:-./altus}:/config
+      - ${CONTAINER_BASEPATH:-~/altus}:/config
     ports:
-      - ${CONTAINER_PORT_HTTP:-${CUSTOM_PORT:-3000}}:${CUSTOM_PORT:-3000}
-      - ${CONTAINER_PORT_HTTPS:-${CUSTOM_HTTPS_PORT:-3001}}:${CUSTOM_HTTPS_PORT:-3000}
+      - ${CUSTOM_PORT:-3000}:${CUSTOM_PORT:-3000}
+      - ${CUSTOM_HTTPS_PORT:-3001}:${CUSTOM_HTTPS_PORT:-3000}
     shm_size: "1gb"

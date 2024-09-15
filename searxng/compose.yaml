@@ -7,10 +7,10 @@ services:
   searxng:
     image: docker.io/searxng/searxng:latest
     container_name: ${CONTAINER_NAME:-searxng}
-    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     environment:
-      - TZ=${TZ:-Europe/Copenhagen}
+      - TZ=${TZ:-UTC}
       #- SEARXNG_SETTINGS_PATH=${SEARXNG_SETTINGS_PATH:-/etc/searxng/settings.yaml}
       #- SEARXNG_BASE_URL=https://${SEARXNG_HOSTNAME:-localhost}/
       #- INSTANCE_NAME=SearXNG
@@ -22,18 +22,14 @@ services:
     volumes:
       - ${CONTAINER_BASEPATH:-/opt/searxng}:/etc/searxng
     ports:
-      - ${CONTAINER_PORT_HTTP:-8080}:8080
+      - 8080:8080
     networks:
       proxy:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.mdw-crowdsec-searxng.plugin.crowdsecBouncer.crowdsecLapiKey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.mdw-crowdsec-searxng.plugin.crowdsecBouncer.crowdsecLapiScheme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.mdw-crowdsec-searxng.plugin.crowdsecBouncer.crowdsecLapiHost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.rtr-searxng.middlewares=mdw-crowdsec-searxng
       - traefik.http.routers.rtr-searxng.entryPoints=https
-      - traefik.http.routers.rtr-searxng.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
-      - traefik.http.routers.rtr-searxng.service=svc-searxng
+      - traefik.http.routers.rtr-searxng.rule=Host(`${TRAEFIK_SUBJECT_CN:?}`)
       - traefik.http.services.svc-searxng.loadbalancer.server.scheme=http
       - traefik.http.services.svc-searxng.loadbalancer.server.port=8080
+      - traefik.http.routers.rtr-searxng.service=svc-searxng

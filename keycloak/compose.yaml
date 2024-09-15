@@ -7,7 +7,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     container_name: ${CONTAINER_NAME:-keycloak}
-    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     command: start
     depends_on:
@@ -16,7 +16,7 @@ services:
       ## https://www.keycloak.org/server/all-config
       - KC_PROXY_ADDRESS_FORWARDING=true
       - KC_HOSTNAME_STRICT=false
-      - KC_HOSTNAME=${KC_HOSTNAME:-${TRAEFIK_SUBJECT_CN:?KC_HOSTNAME / TRAEFIK_SUBJECT_CN is missing}}
+      - KC_HOSTNAME=${KC_HOSTNAME:-${TRAEFIK_SUBJECT_CN:?}}
       - KC_PROXY=edge
       - KC_HTTP_ENABLED=true
       - KC_HTTP_PORT=${KC_HTTP_PORT:-8080}
@@ -38,32 +38,25 @@ services:
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-${KEYCLOAK_PASS:-change_me}}
     volumes:
       - ${CONTAINER_BASEPATH:-/opt/keycloak}/logs:/var/log
-    ports:
-      - ${CONTAINER_PORT_HTTP:-${KC_HTTP_PORT:-8080}}:${KC_HTTP_PORT:-8080}
-      - ${CONTAINER_PORT_MGMT:-${KC_HTTP_MANAGEMENT_PORT:-9000}}:${KC_HTTP_MANAGEMENT_PORT:-9000}
+    #ports:
+    #  - ${KC_HTTP_PORT:-8080}:${KC_HTTP_PORT:-8080}
+    #  - ${KC_HTTP_MANAGEMENT_PORT:-9000}:${KC_HTTP_MANAGEMENT_PORT:-9000}
     networks:
       stack:
       proxy:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-keycloak}-bouncer.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-keycloak}-bouncer.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.${TRAEFIK_SERVICE:-keycloak}-bouncer.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOST:-${CROWDSEC_LAPIHOST:-crowdsec}:${CROWDSEC_LAPIHOST_PORT:-8080}}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-keycloak}.middlewares=${TRAEFIK_SERVICE:-keycloak}-bouncer
-      - traefik.http.routers.${TRAEFIK_SERVICE:-keycloak}.entrypoints=https
-      - traefik.http.routers.${TRAEFIK_SERVICE:-keycloak}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-keycloak}.tls=true
-      - traefik.http.routers.${TRAEFIK_SERVICE:-keycloak}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-keycloak}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
-      - traefik.http.routers.${TRAEFIK_SERVICE:-keycloak}.service=${TRAEFIK_SERVICE:-keycloak}
-      - traefik.http.services.${TRAEFIK_SERVICE:-keycloak}.loadbalancer.server.scheme=http
-      - traefik.http.services.${TRAEFIK_SERVICE:-keycloak}.loadbalancer.server.port=${KC_HTTP_PORT:-8080}
+      - traefik.http.routers.rtr-keycloak.entrypoints=https
+      - traefik.http.routers.rtr-keycloak.rule=Host(`${TRAEFIK_SUBJECT_CN:?}`)
+      - traefik.http.services.svc-keycloak.loadbalancer.server.scheme=http
+      - traefik.http.services.svc-keycloak.loadbalancer.server.port=${KC_HTTP_PORT:-8080}
+      - traefik.http.routers.rtr-keycloak.service=svc-keycloak
 
   db:
     image: postgres:latest
     container_name: ${CONTAINER_DB_NAME:-keycloak_db}
-    hostname: ${CONTAINER_DB_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     environment:
       - POSTGRES_DB=${KC_DB_URL_DATABASE:-keycloak}

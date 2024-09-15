@@ -6,7 +6,7 @@ services:
   whoamiHTTP:
     image: traefik/whoami
     container_name: ${CONTAINER_NAME:-whoamiHTTP}
-    hostname: ${CONTAINER_HOSTNAME}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     #command:
     #  - --port=${WHOAMI_PORT_NUMBER:-80}
@@ -16,7 +16,7 @@ services:
     #  - --key=cert.key
     #  - --ca=cacert.crt
     environment:
-      - TZ=${TZ:-Europe/Copenhagen}
+      - TZ=${TZ:-UTC}
       - WHOAMI_PORT_NUMBER=${WHOAMI_PORT_NUMBER:-80}
       - WHOAMI_NAME=${WHOAMI_NAME}
     volumes:
@@ -28,42 +28,37 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.mdw-ipAllow-${TRAEFIK_SERVICE:-whoami}.ipAllowList.sourceRange=${TRAEFIK_IPALLOW_RANGE:-0.0.0.0/0}
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-whoami}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:?CROWDSEC_LAPIKEY is missing}
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-whoami}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-whoami}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.middlewares=mdw-ipAllow-${TRAEFIK_SERVICE:-whoami},mdw-bouncer-${TRAEFIK_SERVICE:-whoami}
-      #- traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-whoami}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.entrypoints=https
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.tls=true
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:-TRAEFIK_SUBJECT_CN is missing}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-whoami}.service=svc-${TRAEFIK_SERVICE:-whoami}
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-whoami}.loadbalancer.server.scheme=http
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-whoami}.loadbalancer.server.port=${WHOAMI_PORT_NUMBER:-80}
+      - traefik.http.routers.rtr-whoami.entrypoints=https
+      - traefik.http.routers.rtr-whoami.rule=Host(`${TRAEFIK_SUBJECT_CN:?}`)
+      - traefik.http.services.svc-whoami.loadbalancer.server.scheme=http
+      - traefik.http.services.svc-whoami.loadbalancer.server.port=${WHOAMI_PORT_NUMBER:-80}
+      - traefik.http.routers.rtr-whoami.service=svc-whoami
 
-  # whoamiTCP:
-  #   image: traefik/whoamitcp
-  #   container_name: ${CONTAINER_NAME:-whoamiTCP}
-  #   hostname: ${CONTAINER_HOSTNAME}
-  #   restart: unless-stopped
-  #   #command:
-  #   #  - --port=:8080
-  #   #  - --name=
-  #   #  - --certFile=
-  #   #  - --keyFile=
-  #   #  - --banner=false
-  #   ports:
-  #     - 8080:8080/tcp
+  #whoamiTCP:
+  #  image: traefik/whoamitcp
+  #  container_name: ${CONTAINER_NAME:-whoamiTCP}
+  #  hostname: ${HOSTNAME}
+  #  restart: unless-stopped
+  #  #command:
+  #  #  - --port=:8080
+  #  #  - --name=
+  #  #  - --certFile=
+  #  #  - --keyFile=
+  #  #  - --banner=false
+  #  environment:
+  #    - TZ=${TZ:-UTC}
+  #  ports:
+  #    - 8080:8080/tcp
 
-  # whoamiUDP:
-  #   image: traefik/whoamiudp
-  #   container_name: ${CONTAINER_NAME:-whoamiUDP}
-  #   hostname: ${CONTAINER_HOSTNAME}
-  #   restart: unless-stopped
-  #   #command:
-  #   #  - --port=:8080
-  #   #  - --name=
-  #   ports:
-  #     - 8080:8080/udp
+  #whoamiUDP:
+  #  image: traefik/whoamiudp
+  #  container_name: ${CONTAINER_NAME:-whoamiUDP}
+  #  hostname: ${HOSTNAME}
+  #  restart: unless-stopped
+  #  #command:
+  #  #  - --port=:8080
+  #  #  - --name=
+  #  environment:
+  #    - TZ=${TZ:-UTC}
+  #  ports:
+  #    - 8080:8080/udp

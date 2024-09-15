@@ -3,21 +3,21 @@ networks:
     external: true
 
 services:
+  # https://docs.linuxserver.io/images/docker-librewolf/
   librewolf:
-    # https://docs.linuxserver.io/images/docker-librewolf/
     image: lscr.io/linuxserver/librewolf:latest
     container_name: ${CONTAINER_NAME:-librewolf}
-    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     shm_size: "1gb"
     environment:
-      - TZ=${TZ:-Europe/Copenhagen}
-      - PUID=1000
-      - PGID=1000
+      - TZ=${TZ:-UTC}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
     volumes:
       - ${CONTAINER_BASEPATH:-/opt/librewolf}:/config
     ports:
-      - ${CONTAINER_PORT_HTTP:-3000}:3000
-      - ${CONTAINER_PORT_HTTPS:-3001}:3001
+      - 3000:3000
+      - 3001:3001
     networks:
       proxy:

@@ -6,9 +6,10 @@ services:
   librespeed:
     image: ghcr.io/librespeed/speedtest:latest
     container_name: ${CONTAINER_NAME:-librespeed}
-    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    hostname: ${HOSTNAME}
     restart: unless-stopped
     environment:
+      - TZ=${TZ:-UTC}
       - MODE=standalone
       - WEBPORT=${WEBPORT:-80}
       - TITLE
@@ -23,21 +24,14 @@ services:
     volumes:
       - ${CONTAINER_BASEPATH}:/database
     #ports:
-    #  - ${CONTAINER_PORT_HTTP:-${WEBPORT:-80}}:${WEBPORT:-80}
+    #  - ${WEBPORT:-80}:${WEBPORT:-80}
     networks:
       proxy:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-librespeed}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-librespeed}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-librespeed}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-librespeed}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-librespeed}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-librespeed}.entrypoints=https
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-librespeed}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-librespeed}.tls=true
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-librespeed}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-librespeed}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-librespeed}.service=svc-${TRAEFIK_SERVICE:-librespeed}
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-librespeed}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-librespeed}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-${WEBPORT:-80}}
+      - traefik.http.routers.rtr-librespeed.entrypoints=https
+      - traefik.http.routers.rtr-librespeed.rule=Host(`${TRAEFIK_SUBJECT_CN:?}`)
+      - traefik.http.services.svc-librespeed.loadbalancer.server.scheme=http
+      - traefik.http.services.svc-librespeed.loadbalancer.server.port=${WEBPORT:-80}
+      - traefik.http.routers.rtr-librespeed.service=svc-librespeed

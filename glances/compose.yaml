@@ -6,31 +6,24 @@ services:
   glances:
     image: nicolargo/glances:latest
     container_name: ${CONTAINER_HOSTNAME:-glances}
-    hostname: ${CONTAINER_HOSTNAME:-${HOSTNAME}}
+    hostname: HOSTNAME}
     pid: host
     restart: unless-stopped
     environment:
-      - TZ=${TZ:-Europe/Copenhagen}
+      - TZ=${TZ:-UTC}
       - GLANCES_OPT=${GLANCES_OPT:-"--webserver --port ${GLANCES_PORT:-61208}"}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${CONTAINER_BASEPATH:-/opt/glances}:/glances
     #ports:
-    #  - ${CONTAINER_PORT_HTTP:-${GLANCES_PORT:-61208}}:${GLANCES_PORT:-61208}
+    #  - ${GLANCES_PORT:-61208}:${GLANCES_PORT:-61208}
     networks:
       proxy:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-glances}.plugin.crowdsecBouncer.crowdseclapikey=${CROWDSEC_LAPIKEY:-}
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-glances}.plugin.crowdsecBouncer.crowdseclapischeme=${CROWDSEC_LAPISCHEME:-http}
-      - traefik.http.middlewares.mdw-bouncer-${TRAEFIK_SERVICE:-glances}.plugin.crowdsecBouncer.crowdseclapihost=${CROWDSEC_LAPIHOSTNAME:-crowdsec}:${CROWDSEC_LAPIHOSTPORT:-8080}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-glances}.middlewares=mdw-bouncer-${TRAEFIK_SERVICE:-glances}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-glances}.entrypoints=https
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-glances}.rule=${TRAEFIK_ROUTER_RULE:-Host(`${TRAEFIK_SUBJECT_CN:?TRAEFIK_ROUTER_RULE is missing}`)}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-glances}.tls=true
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-glances}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le_cloudflare}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-glances}.tls.domains[0].main=${TRAEFIK_SUBJECT_CN:?TRAEFIK_SUBJECT_CN is missing}
-      - traefik.http.routers.rtr-${TRAEFIK_SERVICE:-glances}.service=svc-${TRAEFIK_SERVICE:-glances}
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-glances}.loadbalancer.server.scheme=${TRAEFIK_SERVICE_SCHEME:-http}
-      - traefik.http.services.svc-${TRAEFIK_SERVICE:-glances}.loadbalancer.server.port=${TRAEFIK_SERVICE_PORT:-${GLANCES_PORT:-61208}}
+      - traefik.http.routers.rtr-glances.entrypoints=https
+      - traefik.http.routers.rtr-glances.rule=Host(`${TRAEFIK_SUBJECT_CN:?}`)
+      - traefik.http.services.svc-glances.loadbalancer.server.scheme=http
+      - traefik.http.services.svc-glances.loadbalancer.server.port=${GLANCES_PORT:-61208}
+      - traefik.http.routers.rtr-glances.service=svc-glances
