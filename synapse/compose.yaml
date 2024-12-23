@@ -88,3 +88,5 @@ services:
       - ${CONTAINER_DB_BASEPATH:-${CONTAINER_BASEPATH:-/opt/synapse}/schemas}:/var/lib/postgresql/data
     networks:
       stack:
+
+## TODO: Checkout synapse-admin: https://github.com/Awesome-Technologies/synapse-admin?tab=readme-ov-file

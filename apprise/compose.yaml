@@ -1,0 +1,14 @@
+services:
+  # https://github.com/caronc/apprise-api?tab=readme-ov-file#environment-variables
+  apprise:
+    image: caronc/apprise:latest
+    container_name: apprise
+    hostname: REALHOSTNAME
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Copenhagen
+      - APPRISE_STATEFUL_MODE=simple
+    volumes:
+      - /volume1/docker/apprise:/config
+    ports:
+      - 8000:8000

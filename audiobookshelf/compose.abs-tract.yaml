@@ -1,3 +1,6 @@
+networks:
+  stack:
+
 services:
   audiobookshelf:
     # https://www.audiobookshelf.org/
@@ -5,6 +8,8 @@ services:
     container_name: audiobookshelf
     hostname: ${HOSTNAME}
     restart: unless-stopped
+    depends_on:
+      - abs-tract
     environment:
       - TZ=${TZ:-UTC}
     volumes:
@@ -16,3 +21,18 @@ services:
       - ${MEDIA_BASEPATH:-.}/music/Podcasts:/podcasts
     ports:
       - ${CONTAINER_PORT_HTTP:-80}:80
+    networks:
+      - stack
+
+  abs-tract:
+    # https://github.com/ahobsonsayers/abs-tract
+    image: arranhs/abs-tract
+    container_name: abs-tract
+    hostname: ${HOSTNAME}
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-UTC}
+    ports:
+      - 5555:5555
+    networks:
+      - stack
