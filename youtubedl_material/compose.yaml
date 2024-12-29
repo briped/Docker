@@ -1,0 +1,17 @@
+services:
+  ytdlm:
+    image: tzahi12345/youtubedl-material:latest
+    container_name: ytdlm
+    hostname: ${HOSTNAME}
+    restart: unless-stopped
+    environment:
+      - write_ytdl_config=true
+      - ytdl_use_local_db=true
+    volumes:
+      - ./:/app/appdata
+      - /mnt/youtube/audio:/app/audio
+      - /mnt/youtube/video:/app/video
+      - /mnt/youtube/subscriptions:/app/subscriptions
+      - /mnt/youtube/users:/app/users
+    ports:
+      - 17442:17442
